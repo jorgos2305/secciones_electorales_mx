@@ -12,6 +12,8 @@ def load_secciones_of(state:Path) -> gpd.GeoDataFrame:
     Returns:
         gpd.GeoDataFrame: The GeoDataFrame containing the geometry of the secciones
     """
+    if not state.suffix.endswith('.shp'):
+        raise TypeError('Use a shp file to load the secciones.')
     secciones = gpd.read_file(state)
     secciones.columns = [col.lower() for col in secciones.columns]
     secciones = secciones.sort_values(by=['municipio', 'seccion'])
