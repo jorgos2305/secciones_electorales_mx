@@ -71,7 +71,7 @@ def define_storage_location(state_name:str) -> Path:
     """Helper function to defined the location where the files must be stored."""
     return Path(__file__).parent.joinpath(state_name)
 
-if __name__ == '__name__':
+if __name__ == '__main__':
 
     # Load the file with the secciones
     secciones_file = input('Enter the path to the secciones file (It must be and shp file):\n').strip()
