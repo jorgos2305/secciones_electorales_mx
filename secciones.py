@@ -58,7 +58,7 @@ def export_to_geojson(secciones_by_municipio:gpd.GeoDataFrame) -> str:
         secciones_by_municipio (gpd.GeoDataFrame): Final DataFrame to be exported.
     """
     municipio_dict = dict(zip(secciones_by_municipio['id_municipio'].values, secciones_by_municipio['nombre municipio'].values))
-    state_name = secciones_by_municipio['nombre entidad'].unique()
+    state_name = secciones_by_municipio['nombre entidad'].unique()[0].lower()
     storage_location = define_storage_location(state_name)
     storage_location.mkdir(parents=True, exist_ok=True)
     for id_municipio in secciones_by_municipio['id_municipio'].unique():
@@ -75,11 +75,11 @@ if __name__ == '__main__':
 
     # Load the file with the secciones
     secciones_file = input('Enter the path to the secciones file (It must be and shp file):\n').strip()
-    secciones = load_secciones_of(secciones_file)
+    secciones = load_secciones_of(Path(secciones_file))
 
     # Load the file with the minucipio catalog
     municipios_file = input('Enter the path to the municipios file (It must be an excel file):\n').strip()
-    municipios = load_municipio_of(municipios_file)
+    municipios = load_municipio_of(Path(municipios_file))
 
     # DataFrames are combined to get the secciones and municipios name
     municipios_with_secciones = assign_seccion_to_municipio(secciones, municipios)
