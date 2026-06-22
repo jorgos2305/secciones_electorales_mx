@@ -110,8 +110,9 @@ def insert_secciones(conn:psycopg2.extensions.connection, secciones:pd.DataFrame
 
 if __name__ == "__main__":
 
-    env_path = Path(__file__).parents[2] / ".env"
-    load_dotenv(r"/Users/jorgetellez/Documents/06_Projects/secciones_electorales_mx/.env")
+    env_path = Path(__file__).parents[1] / ".env"
+    print(env_path)
+    load_dotenv(env_path)
     DB_NAME = os.getenv("DB_NAME")
     DB_PASSWORD = os.getenv("DB_PASSWORD")
     DB_USER = os.getenv("DB_USER")
