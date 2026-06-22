@@ -4,3 +4,4 @@
 notebooks/
 data/raw/
 __pycache__/
+logs/
