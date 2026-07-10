@@ -56,8 +56,13 @@ def get_geography(root:Path) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         municipalities,
         sort_key=["entidad", "municipio"],
         drop_cols=["id", "control"],
-        rename_cols={"municipio":"id"}
+        rename_cols={"municipio":"municipio_id", "entidad":"entidad_id"}
     )
+    municipalities["id"] = [i for i in range(1, len(municipalities)+1)]
+    municipalities = municipalities.loc[:,["id", "municipio_id", "entidad_id", "nombre", "geometry"]]
+    municipalities.index = [i for i in range(1, len(municipalities)+1)]
+    municipalities["geometry"] = municipalities["geometry"].apply(normalize_geometry) # type: ignore
+
     secciones = clean_df(
         secciones,
         sort_key=["entidad", "municipio", "seccion"],
@@ -103,32 +108,55 @@ def insert_states(conn:psycopg2.extensions.connection, states:pd.DataFrame) -> N
         raise RuntimeError("Could not insert rows into table: states") from exc
 
 def insert_municipalities(conn:psycopg2.extensions.connection, municipalities:pd.DataFrame) -> None:
-    raise NotImplementedError
+    rows = [
+    (
+        row.id,
+        row.municipio_id,
+        row.entidad_id,
+        row.nombre,
+        row.geometry.wkt if row.geometry else None # type: ignore
+    )
+    for row in municipalities.itertuples(index=False)
+    ]
+    sql = """
+    INSERT INTO municipality (id, municipality_id, state_id, name, geometry)
+    VALUES (%s, %s, %s, %s, ST_GeomFromText(%s, 4326))
+    """
+    try:
+        with conn.cursor() as curs:
+            curs.executemany(sql, rows)
+            logger.info("Row sucessfully inserted into table: municipality")
+    except Exception as exc:
+        logger.info("Could not insert rows into table: municipylity")
+        raise RuntimeError("Could not insert rows into table: municipylity") from exc
 
 def insert_secciones(conn:psycopg2.extensions.connection, secciones:pd.DataFrame) -> None:
     raise NotImplementedError
 
 if __name__ == "__main__":
 
+    # load env variables
     env_path = Path(__file__).parents[1] / ".env"
-    print(env_path)
     load_dotenv(env_path)
     DB_NAME = os.getenv("DB_NAME")
     DB_PASSWORD = os.getenv("DB_PASSWORD")
     DB_USER = os.getenv("DB_USER")
     DB_HOST = os.getenv("DB_HOST")
+    DB_PORT = os.getenv("DB_PORT")
 
     # Get the raw data and place it in the database
     data_root = Path(f"data/raw/")
 
+    # process data
     states, municipalities, secciones = get_geography(data_root)
     
-    with psycopg2.connect(f"dbname={DB_NAME} user={DB_USER} password={DB_PASSWORD} host={DB_HOST} port=5432") as conn:
+    # create tables and insert data
+    with psycopg2.connect(f"dbname={DB_NAME} user={DB_USER} password={DB_PASSWORD} host={DB_HOST} port={DB_PORT}") as conn:
         logger.info("Create tables")
         create_tables(conn)
         logger.info("Insert states")
         insert_states(conn, states)
-        #logger.info("Insert municipalities")
-        #insert_municipalities(conn, municipalities)
+        logger.info("Insert municipalities")
+        insert_municipalities(conn, municipalities)
         #logger.info("Insert secciones")
         #insert_secciones(conn, secciones)
