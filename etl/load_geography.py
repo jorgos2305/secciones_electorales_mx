@@ -60,15 +60,18 @@ def get_geography(root:Path) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     )
     municipalities["id"] = [i for i in range(1, len(municipalities)+1)]
     municipalities = municipalities.loc[:,["id", "municipio_id", "entidad_id", "nombre", "geometry"]]
-    municipalities.index = [i for i in range(1, len(municipalities)+1)]
     municipalities["geometry"] = municipalities["geometry"].apply(normalize_geometry) # type: ignore
 
     secciones = clean_df(
         secciones,
         sort_key=["entidad", "municipio", "seccion"],
         drop_cols=["id", "tipo", "control"],
-        rename_cols={"seccion":"id"}
+        rename_cols={"seccion":"seccion_id", "entidad":"entidad_id", "municipio":"municipio_id"}
     )
+    secciones["id"] = [i for i in range(1, len(secciones)+1)]
+    secciones = secciones.loc[:, ["id", "seccion_id", "entidad_id", "municipio_id", "distrito_f", "distrito_l", "geometry"]]
+    secciones["geometry"] = secciones["geometry"].apply(normalize_geometry) # type: ignore
+
     return states, municipalities, secciones
 
 def create_tables(conn:psycopg2.extensions.connection) -> None:
@@ -127,11 +130,33 @@ def insert_municipalities(conn:psycopg2.extensions.connection, municipalities:pd
             curs.executemany(sql, rows)
             logger.info("Row sucessfully inserted into table: municipality")
     except Exception as exc:
-        logger.info("Could not insert rows into table: municipylity")
-        raise RuntimeError("Could not insert rows into table: municipylity") from exc
+        logger.error("Could not insert rows into table: municipylity")
+        raise RuntimeError("Could not insert rows into table: municipality") from exc
 
 def insert_secciones(conn:psycopg2.extensions.connection, secciones:pd.DataFrame) -> None:
-    raise NotImplementedError
+    rows = [
+        (
+            row.id,
+            row.seccion_id,
+            row.entidad_id,
+            row.municipio_id,
+            row.distrito_f,
+            row.distrito_l,
+            row.geometry.wkt if row.geometry else None # type:ignore
+        )
+        for row in secciones.itertuples(index=False)
+    ]
+    sql = """
+    INSERT INTO seccion (id, seccion_id, state_id, municipality_id, distrito_f, distrito_l, geometry)
+    VALUES (%s, %s, %s, %s, %s, %s, ST_GeomFromText(%s, 4326))
+    """
+    try:
+        with conn.cursor() as curs:
+            curs.executemany(sql, rows)
+            logger.info("Rows successfully inserted into table: seccion")
+    except Exception as exc:
+        logger.error("Could not insert rows into table: seccion")
+        raise RuntimeError("Could not insert rows into table: municipality") from exc
 
 if __name__ == "__main__":
 
@@ -158,5 +183,5 @@ if __name__ == "__main__":
         insert_states(conn, states)
         logger.info("Insert municipalities")
         insert_municipalities(conn, municipalities)
-        #logger.info("Insert secciones")
-        #insert_secciones(conn, secciones)
+        logger.info("Insert secciones")
+        insert_secciones(conn, secciones)

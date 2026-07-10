@@ -13,7 +13,7 @@ CREATE TABLE state (
 
 CREATE TABLE municipality (
     id INTEGER PRIMARY KEY,
-    municipality_id INTEGER,
+    municipality_id INTEGER NOT NULL,
     state_id INTEGER NOT NULL,
     name VARCHAR(128) NOT NULL,
     geometry GEOMETRY(MULTIPOLYGON, 4326),
@@ -25,7 +25,8 @@ CREATE TABLE municipality (
 );
 
 CREATE TABLE seccion (
-    seccion_id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY,
+    seccion_id INTEGER NOT NULL,
     state_id INTEGER NOT NULL,
     municipality_id INTEGER NOT NULL,
     distrito_f INTEGER NOT NULL,
