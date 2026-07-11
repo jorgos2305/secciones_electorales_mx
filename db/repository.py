@@ -18,17 +18,16 @@ def get_state(state_id:int) -> Tuple | None:
     sql = """
     SELECT 
         name,
-        capital    
+        capital,
+        ST_AsGEOJSON(geometry)
     FROM
         state
     WHERE
         state_id = %s;
     """
     vars = (state_id,)
-    print("Looking for state:", state_id)
     with get_connection() as conn:
         with conn.cursor() as curs:
             curs.execute(sql, vars)
             state = curs.fetchone()
-    print("DB returns", state)
     return state
