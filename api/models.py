@@ -2,10 +2,14 @@ from pydantic import BaseModel
 from typing import Dict, Any, Literal, List
 
 class Geometry(BaseModel):
-    type : Literal["Polygon", "MultiPolygon"]
-    coordinates : List
+    geometry_type : Literal["Polygon", "MultiPolygon"]
+    coordinates : List[Any]
 
 class State(BaseModel):
+    state_id : int
     name     : str
     capital  : str | None
-    geometry : Geometry
+
+class Municipality(BaseModel):
+    name : str
+    municipality_id : int
