@@ -3,7 +3,7 @@ from fastapi.exceptions import HTTPException
 from typing import List, Dict
 
 from db import repository
-from api.models import State, Municipality, Geometry
+from api.models import FeatureCollection, StateFeatureModel, StatePropertiesModel, GeometryModel, MunicipalityFeatureModel
 from logging_config import setup_logging
 
 # start api
@@ -14,46 +14,32 @@ def welcome():
     return {"message" : "welcome"}
 
 @app.get("/states")
-def get_all_states() -> List[State]:
+def get_all_states() -> List[StatePropertiesModel]:
     states = repository.get_all_states()
     if states is None:
         raise HTTPException(404)
     return [
-        State(**state) for state in states
+        StatePropertiesModel(**state) for state in states
     ]
 
 @app.get("/states/{state_id}")
-def get_state(state_id:int) -> State:
+def get_state(state_id:int) -> StatePropertiesModel:
     state = repository.get_state(state_id)
     if state is None:
         raise HTTPException(404)
-    state_name, state_capital = state
-    return State(
-        state_id=state_id,
-        name=state_name,
-        capital=state_capital
+    return StatePropertiesModel(
+        state_id=state["state_id"],
+        name=state["name"],
+        capital=state["capital"]
         )
 
 @app.get("/states/{state_id}/geom")
-def get_state_geom(state_id:int) -> Geometry:
-    state_geom = repository.get_state_geometry(state_id)
-    if state_geom is None:
+def get_state_geom(state_id:int) -> StateFeatureModel:
+    feature_dict = repository.get_state_geometry(state_id)
+    if feature_dict is None:
         raise HTTPException(404)
-    geom_type = state_geom["type"]
-    coordinates = state_geom["coordinates"]
-    return Geometry(
-        geometry_type=geom_type,
-        coordinates=coordinates
+    return StateFeatureModel(
+        type=feature_dict["type"],
+        geometry=GeometryModel(**feature_dict["geometry"]),
+        properties=StatePropertiesModel(**feature_dict["properties"])
     )
-
-@app.get("/states/{state_id}/municipalities")
-def get_municipalities_of_state(state_id:int) -> List[Municipality]:
-    municipalities = repository.get_municipalities(state_id)
-    if municipalities is None:
-        raise HTTPException(404)
-
-    return [
-        Municipality(name=name, municipality_id=municipality_id)
-        for name, municipality_id
-        in municipalities
-    ]

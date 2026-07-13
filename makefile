@@ -1,5 +1,7 @@
+.PHONY: setup api
+
 setup:
 	python -m etl.load_geography
 
-apii:
-	uvicorn api.server:app --reload
+api:
+	uvicorn api.server:app --host 0.0.0.0 --port 8000 --reload
